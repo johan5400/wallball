@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYROX Race Simulation · Live Scoreboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--red:#E53935;--red-dark:#C62828;--yellow:#FFD600;--green:#00E676;--bg:#060608;--card:#0e0f14;--border:rgba(255,255,255,.06);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Barlow Condensed",sans-serif;background:var(--bg);color:#fff;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+.sb-header{background:linear-gradient(90deg,#0a0000,#1a0000,#0a0000);border-bottom:2px solid var(--red);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-shrink:0;}
+.sb-logo{width:48px;height:48px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;}
+.sb-title{font-size:32px;font-weight:900;letter-spacing:6px;}
+.sb-subtitle{font-size:12px;color:rgba(255,255,255,.4);letter-spacing:3px;margin-top:2px;}
+.sb-station{margin-left:auto;text-align:right;}
+.sb-station-name{font-size:28px;font-weight:900;letter-spacing:3px;color:var(--yellow);}
+.sb-station-sub{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:2px;margin-top:2px;}
+.live-dot{display:inline-flex;align-items:center;gap:8px;background:rgba(229,57,53,.15);border:1px solid rgba(229,57,53,.4);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--red);margin-left:20px;}
+.live-dot::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink .8s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+
+.sb-body{flex:1;padding:20px 40px;display:flex;flex-direction:column;}
+.sb-table{flex:1;display:grid;grid-template-rows:repeat(4,1fr);gap:10px;}
+
+.sb-row{display:grid;grid-template-columns:60px 80px 1fr 120px;align-items:center;gap:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 20px;position:relative;overflow:hidden;}
+.sb-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(255,255,255,.1);border-radius:4px 0 0 4px;}
+.sb-row.done-row{border-color:rgba(0,230,118,.3);}
+.sb-row.done-row::before{background:var(--green);}
+
+.rank{font-size:28px;font-weight:900;color:rgba(255,255,255,.2);text-align:center;}
+.dossard{font-size:22px;font-weight:900;background:rgba(255,255,255,.07);border-radius:8px;padding:6px 10px;text-align:center;color:rgba(255,255,255,.7);}
+.athlete-name{font-size:30px;font-weight:900;letter-spacing:1px;}
+.norep-badge{display:inline-block;background:rgba(229,57,53,.15);border:1px solid rgba(229,57,53,.3);border-radius:6px;padding:2px 8px;font-size:11px;color:#E53935;font-weight:700;letter-spacing:1px;margin-left:8px;}
+.unbroken-badge{display:inline-block;background:rgba(255,214,0,.15);border:1px solid rgba(255,214,0,.4);border-radius:6px;padding:2px 10px;font-size:12px;color:#FFD600;font-weight:900;letter-spacing:2px;margin-left:8px;animation:ubPulse 1.5s ease infinite alternate;}
+@keyframes ubPulse{0%{opacity:.7;}100%{opacity:1;box-shadow:0 0 12px rgba(255,214,0,.4);}}
+.progress-wrap{margin-top:6px;}
+.progress-track{height:10px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:5px;transition:width .5s cubic-bezier(.34,1.2,.64,1);}
+.progress-label{font-size:10px;color:rgba(255,255,255,.35);margin-top:3px;letter-spacing:1px;}
+.score-num{font-size:52px;font-weight:900;text-align:right;line-height:1;}
+.score-num.done-score{color:var(--green);}
+.score-max{font-size:18px;color:rgba(255,255,255,.2);font-weight:600;}
+
+.sb-footer{padding:10px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.sb-footer-left{font-size:11px;color:rgba(255,255,255,.2);letter-spacing:2px;}
+.last-update{font-size:11px;color:rgba(255,255,255,.3);}
+
+/* UNBROKEN FLASH */
+.ub-flash{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.88);opacity:0;pointer-events:none;transition:opacity .3s;}
+.ub-flash.show{opacity:1;}
+.ub-flash-title{font-size:96px;font-weight:900;letter-spacing:8px;color:#FFD600;text-shadow:0 0 60px rgba(255,214,0,.9);animation:ubScale 1s ease infinite alternate;}
+@keyframes ubScale{0%{transform:scale(1);}100%{transform:scale(1.06);}}
+
+/* PASSWORD */
+#pwd-lock{display:none;position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:700;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+#pwd-lock.open{display:flex;}
+.pwd-card{width:100%;max-width:380px;text-align:center;}
+.pwd-logo{width:64px;height:64px;background:#E53935;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;margin:0 auto 20px;}
+.pwd-title{font-size:22px;font-weight:900;letter-spacing:4px;margin-bottom:6px;}
+.pwd-sub{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:2px;margin-bottom:28px;}
+.pwd-input{width:100%;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);border-radius:12px;color:#fff;padding:16px;font-family:"Barlow Condensed",sans-serif;font-size:22px;text-align:center;letter-spacing:8px;outline:none;margin-bottom:8px;}
+.pwd-input:focus{border-color:var(--yellow);}
+.pwd-err{color:#E53935;font-size:11px;min-height:16px;margin-bottom:12px;letter-spacing:1px;}
+.pwd-btn{width:100%;background:#E53935;color:#fff;border:none;border-radius:12px;padding:15px;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:16px;letter-spacing:3px;cursor:pointer;margin-bottom:10px;}
+.pwd-cancel{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);border-radius:12px;padding:12px;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;cursor:pointer;}
+
+/* CONFIG */
+#config-panel{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:600;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px;overflow-y:auto;}
+#config-panel.open{display:flex;}
+.cfg-card{width:100%;max-width:520px;background:#111;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;margin:40px 0;}
+.cfg-title{font-size:22px;font-weight:900;letter-spacing:2px;margin-bottom:20px;color:var(--yellow);}
+.cfg-field{margin-bottom:14px;}
+.cfg-field label{display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.cfg-field input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;padding:10px 14px;font-family:"Barlow Condensed",sans-serif;font-size:14px;outline:none;}
+.cfg-field input:focus{border-color:var(--yellow);}
+.cfg-actions{display:flex;gap:10px;margin-top:20px;}
+.cfg-save{flex:1;background:var(--yellow);color:#000;border:none;border-radius:10px;padding:13px;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:15px;letter-spacing:2px;cursor:pointer;}
+.cfg-cancel{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);border:none;border-radius:10px;padding:13px 20px;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+
+/* QR SECTION */
+.qr-section{display:none;margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);text-align:center;}
+.qr-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;}
+.qr-img{display:inline-block;background:#fff;padding:12px;border-radius:10px;}
+.qr-sub{font-size:10px;color:rgba(255,255,255,.25);letter-spacing:1px;margin-top:8px;}
+.qr-divider{margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06);}
+
+/* HOTKEY */
+.hotkey{position:fixed;bottom:16px;right:16px;font-size:10px;color:rgba(255,255,255,.15);letter-spacing:1px;}
+
+/* YOYO */
+.yoyo-badge{position:fixed;bottom:16px;left:16px;z-index:50;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:8px 14px;}
+.yoyo-badge span{font-size:14px;font-weight:900;letter-spacing:2px;color:#FFD600;}
+
+.cible-count-btn{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:8px;padding:8px 18px;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:16px;cursor:pointer;transition:all .15s;}
+.cible-count-btn.active{background:rgba(255,214,0,.15);border-color:var(--yellow);color:var(--yellow);}
+
+/* PRINT */
+@media print {
+  body > *:not(#print-page){ display:none !important; }
+  #print-page{ display:flex !important; }
+}
+#print-page{
+  display:none;position:fixed;inset:0;background:#fff;z-index:999;
+  flex-direction:column;align-items:center;justify-content:center;padding:40px;
+}
+.print-header{text-align:center;margin-bottom:32px;}
+.print-title{font-size:28px;font-weight:900;letter-spacing:4px;color:#C62828;}
+.print-sub{font-size:13px;color:#666;letter-spacing:2px;margin-top:4px;}
+.print-qrs{display:flex;gap:60px;justify-content:center;align-items:flex-start;}
+.print-qr-block{text-align:center;}
+.print-qr-label{font-size:14px;font-weight:900;letter-spacing:3px;color:#333;margin-bottom:12px;text-transform:uppercase;}
+.print-qr-img{border:2px solid #eee;border-radius:12px;padding:12px;display:inline-block;}
+.print-qr-url{font-size:8px;color:#999;margin-top:8px;word-break:break-all;max-width:200px;margin-left:auto;margin-right:auto;}
+.print-footer{margin-top:32px;font-size:11px;color:#999;letter-spacing:2px;text-align:center;}
+.print-actions{display:flex;gap:12px;margin-top:24px;}
+.print-btn{background:#C62828;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:15px;letter-spacing:2px;cursor:pointer;}
+.print-btn.sec{background:#eee;color:#333;}
+
+.nr-flash{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.88);opacity:0;pointer-events:none;transition:opacity .3s;}
+.nr-flash.show{opacity:1;}
+.nr-flash-title{font-size:96px;font-weight:900;letter-spacing:8px;color:#E53935;text-shadow:0 0 60px rgba(229,57,53,.9);animation:nrScale 0.5s ease infinite alternate;}
+@keyframes nrScale{0%{transform:scale(1);}100%{transform:scale(1.06);}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div id="scoreboard" style="display:flex;flex-direction:column;height:100vh;">
+  <div class="sb-header">
+    <div class="sb-logo">K</div>
+    <div>
+      <div class="sb-title">HYROX RACE SIMULATION</div>
+      <div class="sb-subtitle">ZONE K · HYBRIDE CENTER · TOUL</div>
+    </div>
+    <div class="sb-station">
+      <div class="sb-station-name">🏀 WALL BALLS</div>
+      <div class="sb-station-sub">LIVE SCORING · 100 REPS</div>
+    </div>
+    <div class="live-dot">LIVE</div>
+  </div>
+  <div class="sb-body">
+    <div class="sb-table" id="sb-table"></div>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-footer-left">ZONE K · HYROX RACE SIMULATION · HYBRIDE CENTER TOUL</div>
+    <div class="last-update" id="last-update">En attente de données...</div>
+  </div>
+</div>
+
+<!-- UNBROKEN FLASH -->
+<div class="ub-flash" id="ub-flash">
+  <div style="font-size:60px;margin-bottom:8px;">⭐🔥⭐</div>
+  <div class="ub-flash-title">UNBROKEN !</div>
+  <div style="font-size:28px;color:rgba(255,255,255,.6);letter-spacing:4px;margin-top:8px;" id="ub-flash-cible">CIBLE 1</div>
+  <div style="font-size:16px;color:rgba(255,255,255,.3);letter-spacing:3px;margin-top:24px;">100 REPS SANS PAUSE</div>
+</div>
+
+<!-- NO REP FLASH -->
+<div class="nr-flash" id="nr-flash">
+  <div style="font-size:48px;margin-bottom:8px;">❌</div>
+  <div class="nr-flash-title">NO REP !</div>
+  <div style="font-size:28px;color:rgba(255,255,255,.6);letter-spacing:4px;margin-top:8px;" id="nr-flash-cible">CIBLE 1</div>
+</div>
+
+<!-- PASSWORD -->
+<div id="pwd-lock">
+  <div class="pwd-card">
+    <div class="pwd-logo">K</div>
+    <div class="pwd-title">ACCÈS ADMIN</div>
+    <div class="pwd-sub">MOT DE PASSE REQUIS</div>
+    <input type="password" class="pwd-input" id="pwd-input" placeholder="••••••" onkeydown="if(event.key==='Enter')checkPwd()">
+    <div class="pwd-err" id="pwd-err"></div>
+    <button class="pwd-btn" onclick="checkPwd()">ACCÉDER</button>
+    <button class="pwd-cancel" onclick="closePwd()">ANNULER</button>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div id="config-panel">
+  <div class="cfg-card">
+    <div class="cfg-title">⚙️ Configuration</div>
+    <div class="cfg-field">
+      <label>URL Firebase</label>
+      <input type="text" id="cfg-fburl" value="https://yoyo-timer-default-rtdb.europe-west1.firebasedatabase.app">
+    </div>
+    <div class="cfg-field">
+      <label>Station</label>
+      <input type="text" id="cfg-station" value="Wall Balls">
+    </div>
+    <div class="cfg-field">
+      <label>Objectif (reps)</label>
+      <input type="number" id="cfg-target" value="100">
+    </div>
+    <div class="cfg-field">
+      <label>Nombre de cibles</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;" id="cible-btns">
+        <button onclick="setCibles(4)" class="cible-count-btn active" id="cb4">4</button>
+        <button onclick="setCibles(5)" class="cible-count-btn" id="cb5">5</button>
+        <button onclick="setCibles(6)" class="cible-count-btn" id="cb6">6</button>
+        <button onclick="setCibles(7)" class="cible-count-btn" id="cb7">7</button>
+        <button onclick="setCibles(8)" class="cible-count-btn" id="cb8">8</button>
+      </div>
+    </div>
+    <div class="cfg-actions">
+      <button class="cfg-cancel" onclick="closeConfig()">Annuler</button>
+      <button class="cfg-save" onclick="saveConfig()">💾 ENREGISTRER</button>
+    </div>
+    <button onclick="if(confirm('Remettre toutes les cibles à 0 ?')){ resetAllCibles(); }" style="width:100%;margin-top:10px;background:rgba(229,57,53,.15);color:#E53935;border:2px solid rgba(229,57,53,.4);border-radius:10px;padding:12px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:2px;cursor:pointer;">🔄 REMISE À ZÉRO GÉNÉRALE</button>
+    <div class="qr-section" id="qr-section">
+      <div class="qr-label">📱 QR CODE JUGE</div>
+      <div class="qr-img" id="qr-juge"></div>
+      <div class="qr-sub">Scannez pour accéder au mode juge</div>
+<div style="display:none" id="qr-proj"></div>
+      <div style="display:none" id="qr-public"></div>
+      <button onclick="openPrint()" style="width:100%;margin-top:16px;background:#C62828;color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:2px;cursor:pointer;">🖨️ IMPRIMER LES QR CODES</button>
+    </div>
+  </div>
+  </div>
+</div>
+
+<div class="yoyo-badge">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="13" r="8" stroke="#FFD600" stroke-width="2"/>
+    <path d="M12 9v4l2.5 2.5" stroke="#FFD600" stroke-width="2" stroke-linecap="round"/>
+    <path d="M9 3h6" stroke="#FFD600" stroke-width="2" stroke-linecap="round"/>
+    <path d="M12 3v2" stroke="#FFD600" stroke-width="2" stroke-linecap="round"/>
+    <path d="M19 6l-1.5 1.5" stroke="#FFD600" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <span>YOYO TIMER</span>
+</div>
+<div class="hotkey">[ C ] Config &nbsp;·&nbsp; [ R ] Reset</div>
+
+<script>
+var FB_URL = 'https://yoyo-timer-default-rtdb.europe-west1.firebasedatabase.app';
+var JUGE_URL = '';
+var TARGET = 100;
+var NB_CIBLES = 4;
+var ATHLETES = [{d:'1',name:'Cible 1'},{d:'2',name:'Cible 2'},{d:'3',name:'Cible 3'},{d:'4',name:'Cible 4'}];
+
+function setCibles(n) {
+  NB_CIBLES = n;
+  ATHLETES = [];
+  for(var i=1;i<=n;i++) ATHLETES.push({d:''+i, name:'Cible '+i});
+  // Reset scores for new cibles
+  for(var i=1;i<=8;i++) if(!SCORES[i]) SCORES[i]=0;
+  // Update active button
+  for(var j=4;j<=8;j++){
+    var btn = document.getElementById('cb'+j);
+    if(btn) btn.className = 'cible-count-btn' + (j===n?' active':'');
+  }
+  // Update grid rows
+  document.getElementById('sb-table').style.gridTemplateRows = 'repeat('+n+',1fr)';
+  renderScoreboard();
+}
+var SCORES = {1:0,2:0,3:0,4:0};
+var NOREPS = {};
+var UNBROKEN = {};
+var pollTimer = null;
+
+function renderScoreboard() {
+  var sorted = ATHLETES.slice().sort(function(a,b){ return (SCORES[b.d]||0)-(SCORES[a.d]||0); });
+  var html = '';
+  sorted.forEach(function(a, i) {
+    var s = SCORES[a.d]||0;
+    var pct = Math.min(100, Math.round(s/TARGET*100));
+    var done = s >= TARGET;
+    var barColor = done ? '#00E676' : pct>66 ? '#FFD600' : pct>33 ? '#FF9800' : '#E53935';
+    var norep = NOREPS[a.d] ? '<span class="norep-badge">'+NOREPS[a.d]+' NO REP</span>' : '';
+    var ub = UNBROKEN[a.d] ? '<span class="unbroken-badge">⚡ UNBROKEN</span>' : '';
+    html += '<div class="sb-row'+(done?' done-row':'')+'">'
+      +'<div class="rank">'+(i+1)+'</div>'
+      +'<div class="dossard">C'+a.d+'</div>'
+      +'<div>'
+        +'<div class="athlete-name">'+a.name+norep+ub+'</div>'
+        +'<div class="progress-wrap">'
+          +'<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
+          +'<div class="progress-label">'+(done?'✅ TERMINÉ !':pct+'% · '+s+' / '+TARGET+' reps')+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div class="score-num'+(done?' done-score':'')+'">'
+        +s+'<span class="score-max">/'+TARGET+'</span>'
+      +'</div>'
+    +'</div>';
+  });
+  document.getElementById('sb-table').innerHTML = html;
+}
+
+var resetTimers = {};
+
+function poll() {
+  fetch(FB_URL+'/.json')
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d) {
+      if(d.scores){ 
+        if(typeof d.scores === 'object'){
+          Object.keys(d.scores).forEach(function(k){ SCORES[k]=parseInt(d.scores[k])||0; });
+        }
+      }
+      if(d.target){ TARGET = d.target; }
+      if(d.noreps){ Object.keys(d.noreps).forEach(function(k){
+        var prev = NOREPS_PREV[k]||0;
+        var curr = parseInt(d.noreps[k])||0;
+        if(curr > prev){ showNoRep(k); }
+        NOREPS_PREV[k] = curr;
+        NOREPS[k] = curr;
+      }); }
+      if(d.unbroken){ Object.keys(d.unbroken).forEach(function(k){
+        if(!UNBROKEN[k] && d.unbroken[k] && d.unbroken[k]!='null'){ UNBROKEN[k]=true; showUnbroken(k); }
+        if(d.unbroken[k]==='null' || !d.unbroken[k]){ UNBROKEN[k]=false; }
+      }); }
+      // Auto-reset cible after 5s when target reached
+      for(var i=1;i<=NB_CIBLES;i++){
+        if(SCORES[i] >= TARGET && !resetTimers[i]){
+          resetTimers[i] = setTimeout((function(cible){
+            return function(){
+              SCORES[cible] = 0;
+              NOREPS[cible] = 0;
+              NOREPS_PREV[cible] = 0;
+              UNBROKEN[cible] = false;
+              resetTimers[cible] = null;
+              fetch(FB_URL+'/scores/'+cible+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:'0'}).catch(function(){});
+              fetch(FB_URL+'/noreps/'+cible+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:'0'}).catch(function(){});
+              fetch(FB_URL+'/unbroken/'+cible+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:'null'}).catch(function(){});
+              renderScoreboard();
+            };
+          })(i), 10000);
+        }
+        // Cancel timer if score was manually reset
+        if(SCORES[i] < TARGET && resetTimers[i]){
+          clearTimeout(resetTimers[i]); resetTimers[i]=null;
+        }
+      }
+      renderScoreboard();
+      document.getElementById('last-update').textContent = 'Mis à jour : '+new Date().toLocaleTimeString('fr-FR');
+    }
+  })
+  .catch(function(e){ console.warn('Poll error:', e); });
+}
+
+function startPolling() {
+  if(pollTimer) clearInterval(pollTimer);
+  poll();
+  pollTimer = setInterval(poll, 500);
+}
+
+function showUnbroken(cible) {
+  document.getElementById('ub-flash-cible').textContent = 'CIBLE '+cible;
+  document.getElementById('ub-flash').classList.add('show');
+  setTimeout(function(){ document.getElementById('ub-flash').classList.remove('show'); }, 3000);
+}
+
+var NOREPS_PREV = {};
+function showNoRep(cible) {
+  document.getElementById('nr-flash-cible').textContent = 'CIBLE '+cible;
+  document.getElementById('nr-flash').classList.add('show');
+  setTimeout(function(){ document.getElementById('nr-flash').classList.remove('show'); }, 1000);
+}
+
+// PASSWORD
+function openConfig() {
+  document.getElementById('pwd-lock').classList.add('open');
+  document.getElementById('pwd-input').value='';
+  document.getElementById('pwd-err').textContent='';
+  setTimeout(function(){ document.getElementById('pwd-input').focus(); }, 100);
+}
+function closePwd() { document.getElementById('pwd-lock').classList.remove('open'); }
+function resetAllCibles(){
+  for(var i=1;i<=8;i++){
+    SCORES[i]=0; NOREPS[i]=0; NOREPS_PREV[i]=0; UNBROKEN[i]=false;
+    if(resetTimers[i]){ clearTimeout(resetTimers[i]); resetTimers[i]=null; }
+  }
+  // Push full reset to Firebase
+  fetch(FB_URL+'/.json',{method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({scores:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0},noreps:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0},unbroken:{},target:TARGET,_ts:Date.now()})
+  }).catch(function(){});
+  try{document.getElementById('ub-flash').classList.remove('show');}catch(e){}
+  try{document.getElementById('nr-flash').classList.remove('show');}catch(e){}
+  renderScoreboard();
+}
+
+function checkPwd() {
+  if(document.getElementById('pwd-input').value === 'Delta') {
+    resetAllCibles();
+    closePwd();
+    openRealConfig();
+  } else {
+    document.getElementById('pwd-err').textContent = '❌ Mot de passe incorrect';
+    document.getElementById('pwd-input').value='';
+  }
+}
+
+// CONFIG
+function openRealConfig() {
+  document.getElementById('cfg-fburl').value = FB_URL;
+  document.getElementById('config-panel').classList.add('open');
+}
+function closeConfig() { document.getElementById('config-panel').classList.remove('open'); }
+function saveConfig() {
+  FB_URL = document.getElementById('cfg-fburl').value.trim() || FB_URL;
+  TARGET = parseInt(document.getElementById('cfg-target').value) || 100;
+  startPolling();
+  generateQR(); // stays open to show QR codes
+}
+
+function generateQR() {
+  var base = location.origin + location.pathname.replace('scoreboard-live.html','');
+  var jugeUrl = base + 'juge.html?fb=' + encodeURIComponent(FB_URL) + '&n=' + NB_CIBLES;
+  JUGE_URL = jugeUrl;
+  var pubUrl  = base + 'public-live.html?fb=' + encodeURIComponent(FB_URL);
+  document.getElementById('qr-section').style.display = 'block';
+  // Generate QR codes locally with qrcodejs
+  document.getElementById('qr-juge').innerHTML = '';
+  new QRCode(document.getElementById('qr-juge'), {
+    text: jugeUrl, width: 180, height: 180,
+    colorDark:'#000000', colorLight:'#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+  document.getElementById('qr-public').innerHTML = '';
+  new QRCode(document.getElementById('qr-public'), {
+    text: pubUrl, width: 180, height: 180,
+    colorDark:'#000000', colorLight:'#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+  setTimeout(function(){
+    try{ document.getElementById('qr-section').scrollIntoView({behavior:'smooth'}); }catch(e){}
+  }, 300);
+}
+
+// KEYBOARD
+document.addEventListener('keydown', function(e){
+  if(document.getElementById('pwd-lock').classList.contains('open')) return;
+  if(document.getElementById('config-panel').classList.contains('open')) {
+    if(e.key==='Escape') closeConfig();
+    return;
+  }
+  if(e.key==='c'||e.key==='C') openConfig();
+  if(e.key==='r'||e.key==='R') {
+    if(confirm('Reset tous les scores ?')){
+      SCORES={}; NOREPS={}; UNBROKEN={}; NOREPS_PREV={};
+      for(var i=1;i<=NB_CIBLES;i++){ SCORES[i]=0; }
+      fetch(FB_URL+'/.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({scores:SCORES,noreps:{},unbroken:{},target:TARGET,_ts:Date.now()})});
+      renderScoreboard();
+    }
+  }
+});
+
+// INIT
+renderScoreboard();
+startPolling();
+
+function openPrint(){
+  if(!JUGE_URL){ alert('Générez d\'abord les QR codes en cliquant Enregistrer !'); return; }
+  var printJuge = document.getElementById('print-qr-juge');
+  printJuge.innerHTML = '';
+  // Generate fresh QR directly on print page
+  new QRCode(printJuge, {
+    text: JUGE_URL, width: 250, height: 250,
+    colorDark:'#000000', colorLight:'#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+  closeConfig();
+  document.getElementById('print-page').style.display = 'flex';
+}
+function closePrint(){
+  document.getElementById('print-page').style.display = 'none';
+}
+
+</script>
+
+<!-- PRINT PAGE -->
+<div id="print-page">
+  <div class="print-header">
+    <div class="print-title">🏀 HYROX RACE SIMULATION</div>
+    <div class="print-sub">ZONE K · HYBRIDE CENTER TOUL · WALL BALLS</div>
+  </div>
+  <div class="print-qrs">
+    <div class="print-qr-block">
+      <div class="print-qr-label">⚖️ QR CODE JUGE</div>
+      <div class="print-qr-img" id="print-qr-juge"></div>
+      <div class="print-qr-url" id="print-url-juge"></div>
+    </div>
+<div style="display:none" id="print-qr-public"><div id="print-url-public"></div></div>
+  </div>
+  <div class="print-footer">YOYO TIMER · Scannez pour accéder au live</div>
+  <div class="print-actions">
+    <button class="print-btn" onclick="window.print()">🖨️ IMPRIMER</button>
+    <button class="print-btn sec" onclick="closePrint()">← RETOUR</button>
+  </div>
+</div>
+
+</body>
+</html>
