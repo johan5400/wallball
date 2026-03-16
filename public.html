@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DELTA Live · CrossFit Games style</title>
+<style>
+:root{
+  --bg:#050816;
+  --bg2:#0b1023;
+  --card:rgba(12,18,38,.78);
+  --stroke:rgba(255,255,255,.08);
+  --text:#f8fafc;
+  --muted:#94a3b8;
+  --blue:#3b82f6;
+  --violet:#8b5cf6;
+  --green:#10b981;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --shadow:0 28px 80px rgba(0,0,0,.38);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:Inter,Arial,Helvetica,sans-serif;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(59,130,246,.18), transparent 18%),
+    radial-gradient(circle at 88% 14%, rgba(139,92,246,.16), transparent 18%),
+    radial-gradient(circle at 70% 85%, rgba(16,185,129,.09), transparent 15%),
+    linear-gradient(180deg,var(--bg),var(--bg2));
+  overflow-x:hidden;
+}
+.orb{
+  position:fixed;border-radius:999px;filter:blur(80px);opacity:.35;pointer-events:none;z-index:0;
+}
+.o1{width:260px;height:260px;background:#3b82f6;left:-90px;top:130px}
+.o2{width:320px;height:320px;background:#8b5cf6;right:-120px;top:20px}
+.o3{width:220px;height:220px;background:#10b981;left:18%;bottom:-70px}
+.shell{position:relative;z-index:2;width:min(1500px,calc(100% - 28px));margin:0 auto}
+.top{
+  padding:22px 0 14px;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
+}
+.eyebrow{
+  font-size:11px;text-transform:uppercase;letter-spacing:1.8px;font-weight:900;color:#bfd4ff;
+}
+h1,h2,h3,p{margin:0}
+h1{font-size:36px;line-height:1}
+.subline{
+  margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;
+}
+.pill{
+  padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.05);
+  border:1px solid var(--stroke);font-weight:800;font-size:12px;color:var(--muted);
+}
+.clock{
+  font-size:82px;line-height:.92;font-weight:900;letter-spacing:2px;
+  text-shadow:0 0 22px rgba(59,130,246,.28);
+}
+.hero{
+  border:1px solid var(--stroke);
+  background:linear-gradient(180deg, rgba(14,22,44,.72), rgba(9,13,28,.92));
+  box-shadow:var(--shadow);
+  border-radius:28px;
+  padding:22px;
+}
+.hero-grid{
+  display:grid;grid-template-columns:1.25fr .75fr;gap:18px;align-items:stretch;
+}
+.wod-box,.info-box{
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--stroke);
+  border-radius:22px;
+  padding:18px;
+}
+.wod-title{
+  font-size:30px;font-weight:900;margin-top:4px;
+}
+.wod-lines{
+  margin-top:14px;white-space:pre-line;line-height:1.8;color:#dbe4f5;font-size:15px;
+}
+.meta-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+.meta-card{
+  border-radius:18px;padding:18px;background:rgba(255,255,255,.04);border:1px solid var(--stroke);
+}
+.meta-label{
+  font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:800;
+}
+.meta-value{
+  font-size:28px;font-weight:900;margin-top:8px;
+}
+.board{
+  margin-top:18px;
+  border:1px solid var(--stroke);
+  background:linear-gradient(180deg, rgba(14,22,44,.72), rgba(9,13,28,.92));
+  box-shadow:var(--shadow);
+  border-radius:28px;
+  overflow:hidden;
+}
+.board-head{
+  display:grid;
+  grid-template-columns:80px 90px 1.4fr 170px 150px 170px 220px;
+  gap:0;
+  padding:16px 22px;
+  border-bottom:1px solid var(--stroke);
+  color:var(--muted);
+  text-transform:uppercase;
+  font-size:12px;
+  letter-spacing:1px;
+  font-weight:900;
+}
+.rows{
+  display:flex;flex-direction:column;
+}
+.row{
+  display:grid;
+  grid-template-columns:80px 90px 1.4fr 170px 150px 170px 220px;
+  gap:0;
+  align-items:center;
+  padding:18px 22px;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  transition:transform .2s ease, background .2s ease;
+}
+.row:last-child{border-bottom:none}
+.row.rank1{
+  background:linear-gradient(90deg, rgba(16,185,129,.12), rgba(255,255,255,.02));
+}
+.row.rank1 .rank-badge{
+  box-shadow:0 0 0 1px rgba(16,185,129,.35), 0 0 30px rgba(16,185,129,.18);
+}
+.rank-badge{
+  width:48px;height:48px;border-radius:14px;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,#1e293b,#0f172a);
+  border:1px solid var(--stroke);
+  font-weight:900;font-size:22px;
+}
+.lane{
+  font-size:24px;font-weight:900;
+}
+.team{
+  display:flex;flex-direction:column;gap:6px;
+}
+.team-name{
+  font-size:26px;font-weight:900;letter-spacing:.3px;
+}
+.team-sub{
+  color:var(--muted);font-size:13px;
+}
+.score{
+  font-size:40px;font-weight:900;line-height:1;
+}
+.retar{
+  font-size:24px;font-weight:900;
+}
+.epa{
+  font-size:28px;font-weight:900;
+}
+.progress{
+  height:16px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.04);
+}
+.fill{
+  height:100%;border-radius:999px;transition:width .4s ease;
+}
+.badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{
+  padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.5px;
+}
+.b-live{background:rgba(59,130,246,.15);color:#bfdbfe}
+.b-dnf{background:rgba(239,68,68,.16);color:#fecaca}
+.b-abs{background:rgba(148,163,184,.15);color:#e2e8f0}
+.b-load{background:rgba(245,158,11,.15);color:#fde68a}
+.empty{
+  padding:36px;color:var(--muted);text-align:center;font-size:16px;
+}
+.footer{
+  margin-top:14px;color:var(--muted);font-size:12px;text-align:center;padding-bottom:20px;
+}
+@media (max-width:1280px){
+  .board-head,.row{
+    grid-template-columns:68px 76px 1.3fr 130px 120px 130px 160px;
+    padding-inline:14px;
+  }
+  .team-name{font-size:22px}
+  .score{font-size:32px}
+  .epa,.retar{font-size:22px}
+}
+@media (max-width:980px){
+  .hero-grid{grid-template-columns:1fr}
+  .board-head{display:none}
+  .row{
+    grid-template-columns:1fr;
+    gap:12px;
+    align-items:flex-start;
+    padding:18px;
+  }
+  .row > div{display:flex;align-items:center;gap:10px}
+  .rank-badge{width:40px;height:40px;font-size:18px}
+  .lane,.score,.retar,.epa{font-size:22px}
+  .clock{font-size:56px}
+}
+</style>
+</head>
+<body>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+<div class="orb o3"></div>
+
+<header class="shell top">
+  <div>
+    <div class="eyebrow">DELTA LIVE · CROSS-FIT GAMES STYLE</div>
+    <h1 id="eventName">Fights on Contest 2026</h1>
+    <div class="subline">
+      <div class="pill" id="zonePill">Zone 1</div>
+      <div class="pill" id="heatPill">Heat 3</div>
+      <div class="pill" id="catPill">PAIR</div>
+      <div class="pill" id="formatPill">For Time</div>
+    </div>
+  </div>
+  <div class="clock" id="clock">05:18</div>
+</header>
+
+<main class="shell">
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="wod-box">
+        <div class="eyebrow">Rappel du WOD</div>
+        <div class="wod-title" id="wodTitle">WOD 2</div>
+        <div class="wod-lines" id="wodLines"></div>
+      </div>
+
+      <div class="info-box">
+        <div class="eyebrow">Lecture du heat</div>
+        <div class="meta-grid">
+          <div class="meta-card">
+            <div class="meta-label">Leader</div>
+            <div class="meta-value" id="leaderName">TEAM ALPHA</div>
+          </div>
+          <div class="meta-card">
+            <div class="meta-label">Score leader</div>
+            <div class="meta-value" id="leaderScore">82</div>
+          </div>
+          <div class="meta-card">
+            <div class="meta-label">EPA leader</div>
+            <div class="meta-value" id="leaderEPA">06:41</div>
+          </div>
+          <div class="meta-card">
+            <div class="meta-label">Statut</div>
+            <div class="meta-value" id="liveState">LIVE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="board">
+    <div class="board-head">
+      <div>Pos</div>
+      <div>Lane</div>
+      <div>Team</div>
+      <div>Score</div>
+      <div>Retard</div>
+      <div>EPA</div>
+      <div>Progression</div>
+    </div>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <div class="footer">Le live lit d’abord localStorage `delta_live_payload` si disponible. Sinon il affiche une démo visuelle.</div>
+</main>
+
+<script>
+const demoPayload = {
+  eventName: "Fights on Contest 2026",
+  zone: "Zone 1",
+  heat: "Heat 3",
+  category: "PAIR",
+  format: "For Time",
+  clock: "05:18",
+  wodTitle: "WOD 2",
+  wodLines: "3 rounds\n21 wall balls 9kg\n15 toes to bar\n9 snatch 60kg",
+  scoreType: "reps",
+  totalReps: 135,
+  teams: [
+    { lane: 2, team: "TEAM ALPHA", athletes: "Dupont / Martin", score: 82, epa: "06:41", status: "live" },
+    { lane: 4, team: "TEAM BRAVO", athletes: "Bernard / Noël", score: 78, epa: "06:58", status: "live" },
+    { lane: 1, team: "TEAM SIGMA", athletes: "Léo / Tom", score: 69, epa: "07:21", status: "live" },
+    { lane: 6, team: "TEAM DELTA", athletes: "Eva / Mila", score: 55, epa: "08:02", status: "live" },
+    { lane: 3, team: "TEAM NOVA", athletes: "Axel / Theo", score: 41, epa: "09:11", status: "dnf" },
+    { lane: 5, team: "TEAM OMEGA", athletes: "Nina / Sara", score: 0, epa: "--", status: "abs" }
+  ]
+};
+
+function readPayload(){
+  try{
+    const raw = localStorage.getItem('delta_live_payload');
+    if(!raw) return demoPayload;
+    const parsed = JSON.parse(raw);
+    return { ...demoPayload, ...parsed };
+  }catch(e){
+    return demoPayload;
+  }
+}
+function sortTeams(payload){
+  const teams = [...(payload.teams || [])];
+  if(payload.scoreType === 'time'){
+    teams.sort((a,b) => {
+      const av = toSeconds(a.score);
+      const bv = toSeconds(b.score);
+      if(!av && bv) return 1;
+      if(av && !bv) return -1;
+      return av - bv;
+    });
+  }else if(payload.scoreType === 'load'){
+    teams.sort((a,b) => Number(b.score || 0) - Number(a.score || 0));
+  }else{
+    teams.sort((a,b) => Number(b.score || 0) - Number(a.score || 0));
+  }
+  return teams;
+}
+function toSeconds(v){
+  if(typeof v === 'number') return v;
+  if(typeof v !== 'string') return 0;
+  const parts = v.split(':').map(Number);
+  if(parts.length === 2) return parts[0] * 60 + parts[1];
+  return Number(v) || 0;
+}
+function progressPct(payload, team){
+  if(payload.scoreType === 'load') return Math.min(100, (Number(team.score || 0) / 150) * 100);
+  if(payload.scoreType === 'time') return Math.min(100, (toSeconds(team.score) / 600) * 100);
+  return Math.min(100, (Number(team.score || 0) / Number(payload.totalReps || 100)) * 100);
+}
+function progressColor(p){
+  if(p < 30) return '#ef4444';
+  if(p < 70) return '#f59e0b';
+  return '#10b981';
+}
+function retardLabel(payload, leader, team){
+  if(payload.scoreType === 'time'){
+    const diff = Math.max(0, toSeconds(team.score) - toSeconds(leader.score));
+    if(diff === 0) return 'leader';
+    return '+' + fmt(diff);
+  }
+  if(payload.scoreType === 'load'){
+    const diff = Math.max(0, Number(leader.score || 0) - Number(team.score || 0));
+    if(diff === 0) return 'leader';
+    return '-' + diff + ' kg';
+  }
+  const diff = Math.max(0, Number(leader.score || 0) - Number(team.score || 0));
+  if(diff === 0) return 'leader';
+  return '-' + diff;
+}
+function fmt(sec){
+  sec = Math.round(sec || 0);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + ':' + String(s).padStart(2,'0');
+}
+function render(){
+  const payload = readPayload();
+  const teams = sortTeams(payload);
+  const leader = teams[0] || {};
+  document.getElementById('eventName').textContent = payload.eventName || 'DELTA';
+  document.getElementById('zonePill').textContent = payload.zone || 'Zone';
+  document.getElementById('heatPill').textContent = payload.heat || 'Heat';
+  document.getElementById('catPill').textContent = payload.category || 'Catégorie';
+  document.getElementById('formatPill').textContent = payload.format || 'Format';
+  document.getElementById('clock').textContent = payload.clock || '00:00';
+  document.getElementById('wodTitle').textContent = payload.wodTitle || 'WOD';
+  document.getElementById('wodLines').textContent = payload.wodLines || '';
+  document.getElementById('leaderName').textContent = leader.team || '--';
+  document.getElementById('leaderScore').textContent = leader.score ?? '--';
+  document.getElementById('leaderEPA').textContent = leader.epa || '--';
+  document.getElementById('liveState').textContent = teams.length ? 'LIVE' : 'ATTENTE';
+
+  const rows = document.getElementById('rows');
+  if(!teams.length){
+    rows.innerHTML = '<div class="empty">Aucune équipe à afficher.</div>';
+    return;
+  }
+
+  rows.innerHTML = teams.map((team, idx) => {
+    const p = progressPct(payload, team);
+    const statusBadge = team.status === 'dnf'
+      ? '<span class="badge b-dnf">DNF</span>'
+      : team.status === 'abs'
+      ? '<span class="badge b-abs">ABSENTE</span>'
+      : payload.scoreType === 'load'
+      ? '<span class="badge b-load">LOAD</span>'
+      : '<span class="badge b-live">LIVE</span>';
+
+    return `
+      <div class="row ${idx === 0 ? 'rank1' : ''}">
+        <div><div class="rank-badge">${idx + 1}</div></div>
+        <div><div class="lane">L${team.lane}</div></div>
+        <div class="team">
+          <div class="team-name">${team.team}</div>
+          <div class="team-sub">${team.athletes || ''}</div>
+          <div class="badges">${statusBadge}</div>
+        </div>
+        <div><div class="score">${team.score ?? '--'}</div></div>
+        <div><div class="retar">${retardLabel(payload, leader, team)}</div></div>
+        <div><div class="epa">${team.epa || '--'}</div></div>
+        <div>
+          <div class="progress">
+            <div class="fill" style="width:${p}%;background:${progressColor(p)}"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+render();
+setInterval(() => {
+  const payload = readPayload();
+  if(!localStorage.getItem('delta_live_payload')){
+    const parts = (payload.clock || '05:18').split(':').map(Number);
+    let sec = (parts[0] || 0) * 60 + (parts[1] || 0);
+    sec += 1;
+    demoPayload.clock = fmt(sec);
+  }
+  render();
+}, 1000);
+</script>
+</body>
+</html>
